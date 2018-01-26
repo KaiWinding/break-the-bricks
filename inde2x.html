@@ -59,14 +59,12 @@
 				if ((a.y-b.y)>(b.x-a.x)) {
 					return 'top'
 				}  else {
-					console.log('no')
 					return 'right'
 				}
 			} else if ((x+a.width)<b.x) {
 				if ((a.y-b.y)>(a.x-b.x)) {
 					return 'top'
 				} else {
-					console.log('no')
 					return 'left'
 				}
 			}  else {
@@ -77,24 +75,20 @@
 				if ((b.y-a.y)>(b.x-a.x)) {
 					return 'bottom'
 				}  else {
-					console.log('no')
 					return 'right'
 				}
 			} else if ((x+a.width)<b.x) {
 				if ((b.y-a.y)>(a.x-b.x)) {
 					return 'bottom'
 				} else {
-					console.log('no')
 					return 'left'
 				}
 			}  else {
 				return 'bottom'
 			}
 		} else if ((a.x+a.width)>b.x) {
-			console.log('1111')
 			return 'left'
 		} else {
-			console.log('nohaha')
 			return 'right'
 		}
 	}
@@ -166,6 +160,21 @@
 		return brickMap
 	}
 
+	function createMap() {
+		var map = []
+
+		for (let i = 5; i < 15; i++) {
+			for (let j = 5; j <15; j++) {
+				let newbrick = new Brick
+				newbrick.x = 20 * i
+				newbrick.y = 20 * j
+				map.push(newbrick)
+			}
+		}
+
+		return map
+	}
+
 	function Game(){
 
 		this.keyBoard={
@@ -190,7 +199,7 @@
 	}
 
 
-	Game.prototype.refresh = function(board,ball,brick) {
+	Game.prototype.refresh = function(board,ball,map) {
 		var screen=document.getElementById('game-screen')
 		var ctx = screen.getContext('2d')
 		var that=this
@@ -217,9 +226,9 @@
 			}
 
 
-			let ballSpeechChange=false
+			let ballSpeechChange = false
 
-			//  小球与砖块碰撞事件
+			/*  小球与砖块碰撞事件，旧的判断方法循环的次数过多
 			for (let i=0;i<20;i++) {
 				for (let j=0; j<35; j++) {
 					if ((isCrashed(ball,that.brickMap[i][j]))&&(that.brickMap[i][j].alive)) {
@@ -232,12 +241,29 @@
 							case 'bottom':ball.speechY=-ball.speechY;ballSpeechChange=true;break;
 							case 'right':ball.speechX=-ball.speechX;ballSpeechChange=true;break;
 							case 'left':ball.speechX=-ball.speechX;ballSpeechChange=true;break;}
-							/*if (isCrashed(ball,that.brickMap[i][j])) {
-								ball.speechY=-ball.speechY
-								ball.speechX=ball.speechX
-								ballSpeechChange=true
-								ball.moveSelfMotion()
-							}	*/					
+			
+						}
+					}
+				}
+			} */
+
+			for (let i = 0; i < map.length; i++) {
+				if ((isCrashed(ball,map[i]))) {
+					//小球撞击到方块对其进行删除
+					map.splice(i, 1)
+					i--
+					console.log(newMap)
+
+					console.log(map[i])
+					score.nodeValue = Number(score.nodeValue) + 10
+					if (!ballSpeechChange) {
+						ballSpeechChange = true 
+
+						switch (crashedDirection(ball, map[i])) {
+							case 'top': ball.speechY=-ball.speechY; break;
+							case 'bottom': ball.speechY=-ball.speechY; break;
+							case 'right': ball.speechX=-ball.speechX; break;
+							case 'left': ball.speechX=-ball.speechX; break;
 						}
 					}
 				}
@@ -246,12 +272,19 @@
 			ctx.clearRect(0,0,screen.width,screen.height)
 			ctx.drawImage(board.img,board.x,board.y,board.width,board.height)
 			ctx.drawImage(ball.img,ball.x,ball.y,ball.width,ball.height)
+
+			/*
 			for (let i=0;i<20;i++) {
 				for (let j=0;j<35;j++){
 					if (that.brickMap[i][j].alive) {
 					ctx.drawImage(that.brickMap[i][j].img,that.brickMap[i][j].x,that.brickMap[i][j].y,that.brickMap[i][j].width,that.brickMap[i][j].height)
-			}
+					}
 				}
+			}
+			*/
+		
+			for (let i = 0; i < map.length; i++) {
+				ctx.drawImage(map[i].img, map[i].x, map[i].y, map[i].width, map[i].height)
 			}
 
 		},1000/30)
@@ -262,10 +295,13 @@
 			canvasHeight=700,
 			canvasWidth=400
 
-		var board=new Board()
-		var ball=new Ball()
-		var game=new Game(board,ball)
+		var board = new Board()
+		var ball = new Ball()
+		var game = new Game(board,ball)
+		var map = []
 
+		//生成方块图
+		map = createMap()
 
 		game.registerAction('a',function(){
 			board.moveLeft()})
@@ -282,7 +318,7 @@
 			clearInterval(gameEngine)
 		})
 
-		game.refresh(board,ball)
+		game.refresh(board,ball,map)
 	}
 
 	__main()
