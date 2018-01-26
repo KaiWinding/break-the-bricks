@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<style type="text/css">
+		#game-screen {
+			border: black 1px solid;
+			padding:0;
+			margin: 0 20px 0 0;
+			float: left;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="game-screen" width="400px" height="700px"></canvas>
+	<div>
+		<p >分数：<span id="score">0</span></p>
+	</div>
+
+<script>
+	function Brick(){
+		this.img=new Image()
+		this.img.src='brick.png'
+		this.x=100
+		this.y=100
+		this.height=20
+		this.width=20
+		this.alive=false
+	}
+
+	function isCrashed(a,b){
+		
+		if ((a.y+a.height)<b.y) {
+			return false 
+		} else if ((b.y+b.height)<a.y) {
+			return false 
+		} else if ((a.x+a.width)<b.x) {
+			return false 
+		} else if ((b.x+b.width)<a.x) {
+			return false 
+		} else {
+
+			return true 
+		}
+	}
+
+	//a为会动的物体
+	function crashedDirection(a,b){
+
+		//还原a到前一状态
+		x=a.x-a.speechX
+		y=a.y-a.speechY
+
+		//console.log('ball.x='+a.x+' ball.y='+a.y+' ball.height='+a.height+' ball.width'+a.width+' x=='+x+' y=='+y)
+		//console.log('brick.x='+b.x+' brick.y='+b.y+' b.height='+b.height+' brick.width'+b.width)
+		if ((y+a.height)<b.y) {
+			if ((x)>(b.x+b.width)) {
+				if ((a.y-b.y)>(b.x-a.x)) {
+					return 'top'
+				}  else {
+					console.log('no')
+					return 'right'
+				}
+			} else if ((x+a.width)<b.x) {
+				if ((a.y-b.y)>(a.x-b.x)) {
+					return 'top'
+				} else {
+					console.log('no')
+					return 'left'
+				}
+			}  else {
+				return 'top'
+			}
+		} else if (y>(b.y+b.height)) {
+			if ((x)>(b.x+b.width)) {
+				if ((b.y-a.y)>(b.x-a.x)) {
+					return 'bottom'
+				}  else {
+					console.log('no')
+					return 'right'
+				}
+			} else if ((x+a.width)<b.x) {
+				if ((b.y-a.y)>(a.x-b.x)) {
+					return 'bottom'
+				} else {
+					console.log('no')
+					return 'left'
+				}
+			}  else {
+				return 'bottom'
+			}
+		} else if ((a.x+a.width)>b.x) {
+			console.log('1111')
+			return 'left'
+		} else {
+			console.log('nohaha')
+			return 'right'
+		}
+	}
+
+	//Ball object
+	function Ball(){
+		this.img=new Image()
+		this.img.src='ball.png'
+		this.x=350
+		this.y=200
+		this.speechX=0
+		this.speechY=0
+		this.height=15
+		this.width=15
+	}
+
+	Ball.prototype.moveSelfMotion=function (){
+		this.x+=this.speechX
+		this.y+=this.speechY
+		if ((this.x<0)||(this.x>canvasWidth)) {
+			this.speechX=-this.speechX
+		}
+		if ((this.y<0)||(this.y>canvasHeight)) {
+			this.speechY=-this.speechY
+		}
+	} 
+
+	//Board object
+	function Board(){
+		this.img=new Image()
+		this.img.src='board.png'
+		this.x=200
+		this.y=600
+		this.speech=10
+		this.width=100
+		this.height=30
+
+	}
+
+	Board.prototype.moveLeft = function() {
+		if ((this.x-this.speech)>=0) {
+			this.x-=this.speech
+		}
+	};
+
+	Board.prototype.moveRight = function() {
+		if ((this.x+this.speech)<=canvasWidth-this.width) {
+			this.x+=this.speech
+		}
+	};
+
+	function createBrickMap () {
+		var brickMap=new Array
+		for (let i=0;i<20;i++){
+			brickMap[i]=new Array
+		}
+		for (let i=0;i<20;i++) {
+			for (let j=0; j<35; j++) {
+				brickMap[i][j]=new Brick()
+				brickMap[i][j].x=i*20
+				brickMap[i][j].y=j*20
+				if ((i>5)&&(i<15)) {
+					if ((j>5)&&(j<15)) {
+						brickMap[i][j].alive=true
+					}
+				}
+			}
+		}
+		return brickMap
+	}
+
+	function Game(){
+
+		this.keyBoard={
+		}
+		this.action={}
+		var that=this
+		window.addEventListener('keydown',function(event){
+				that.keyBoard[event.key]=true
+		})
+		window.addEventListener('keyup',function(event){
+				that.keyBoard[event.key]=false
+		})
+
+		//生成砖块图像，一个二维数组每个变量空间存储一个砖块对象
+
+		this.brickMap=createBrickMap()
+	}
+
+	//注册按键事件
+	Game.prototype.registerAction=function(keyword,callback){
+		this.action[keyword]=callback
+	}
+
+
+	Game.prototype.refresh = function(board,ball,brick) {
+		var screen=document.getElementById('game-screen')
+		var ctx = screen.getContext('2d')
+		var that=this
+		var score=document.getElementById('score').firstChild
+
+		gameEngine=setInterval(function(){
+
+			// 运行注册的按键事件
+			for (let key in that.action) {
+				if (that.keyBoard[key]) {
+					that.action[key]()
+				}
+			}
+
+			ball.moveSelfMotion()
+
+			//  挡板与小球碰撞事件
+			if (isCrashed(ball,board)) {
+			switch (crashedDirection(ball,board)) {
+				case 'top':ball.speechY=-ball.speechY;ball.moveSelfMotion();break;
+				case 'bottom':ball.speechY=-ball.speechY;ball.moveSelfMotion();break;
+				case 'right':ball.speechX=-ball.speechX;ball.moveSelfMotion();break;
+				case 'left':ball.speechX=-ball.speechX;ball.moveSelfMotion();break;}
+			}
+
+
+			let ballSpeechChange=false
+
+			//  小球与砖块碰撞事件
+			for (let i=0;i<20;i++) {
+				for (let j=0; j<35; j++) {
+					if ((isCrashed(ball,that.brickMap[i][j]))&&(that.brickMap[i][j].alive)) {
+						that.brickMap[i][j].alive=false
+						//小球撞击方块分数增加
+						score.nodeValue=Number(score.nodeValue)+10
+						if (!ballSpeechChange) {
+						switch (crashedDirection(ball,that.brickMap[i][j])) {
+							case 'top':ball.speechY=-ball.speechY;ballSpeechChange=true;break;
+							case 'bottom':ball.speechY=-ball.speechY;ballSpeechChange=true;break;
+							case 'right':ball.speechX=-ball.speechX;ballSpeechChange=true;break;
+							case 'left':ball.speechX=-ball.speechX;ballSpeechChange=true;break;}
+							/*if (isCrashed(ball,that.brickMap[i][j])) {
+								ball.speechY=-ball.speechY
+								ball.speechX=ball.speechX
+								ballSpeechChange=true
+								ball.moveSelfMotion()
+							}	*/					
+						}
+					}
+				}
+			}
+
+			ctx.clearRect(0,0,screen.width,screen.height)
+			ctx.drawImage(board.img,board.x,board.y,board.width,board.height)
+			ctx.drawImage(ball.img,ball.x,ball.y,ball.width,ball.height)
+			for (let i=0;i<20;i++) {
+				for (let j=0;j<35;j++){
+					if (that.brickMap[i][j].alive) {
+					ctx.drawImage(that.brickMap[i][j].img,that.brickMap[i][j].x,that.brickMap[i][j].y,that.brickMap[i][j].width,that.brickMap[i][j].height)
+			}
+				}
+			}
+
+		},1000/30)
+	}
+
+
+	var __main=function() {
+			canvasHeight=700,
+			canvasWidth=400
+
+		var board=new Board()
+		var ball=new Ball()
+		var game=new Game(board,ball)
+
+
+		game.registerAction('a',function(){
+			board.moveLeft()})
+		game.registerAction('d',function(){
+			board.moveRight()})
+		game.registerAction('f',function(){
+			console.log('boom')
+			if ((ball.speechX==0)&&(ball.speechY==0)) {
+				ball.speechX=12 
+				ball.speechY=12}
+			})
+		game.registerAction('h',function(){
+			console.log('stop')
+			clearInterval(gameEngine)
+		})
+
+		game.refresh(board,ball)
+	}
+
+	__main()
+		
+</script>
+</body>
+</html>
